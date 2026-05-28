@@ -156,6 +156,61 @@ Here's how to configure OfflineIMAP to retrieve an account password using keycha
    ```
 4. From that point on, every `offlineimap` run will trigger a TouchID prompt before syncing.
 
+## Use Case Example: Rclone
+
+[Rclone](https://rclone.org) is a command-line program to manage files on cloud storage.
+
+Rclone supports [configuration encryption](https://rclone.org/docs/#configuration-encryption). Without it, your cloud service credentials sit in a plaintext config file. With encryption enabled, you need a password on every run — and keychain-biometric lets you store that password securely and gate access behind TouchID instead of keeping it in plaintext in your shell config.
+
+Here's how to enable configuration encryption and retrieve the password using keychain-biometric:
+
+1. Enable configuration encryption. If your config is already encrypted (`rclone config show` will prompt for a password if so), skip to step 2.
+   
+   Run `rclone config`.
+   ```
+   $ rclone config
+   Current remotes:
+   
+   e) Edit existing remote
+   n) New remote
+   d) Delete remote
+   s) Set configuration password
+   q) Quit config
+   e/n/d/s/q>
+   ```
+   Press `s` to Set configuration password
+
+   ```
+   e/n/d/s/q> s
+   Your configuration is not encrypted.
+   If you add a password, you will protect your login information to cloud services.
+   a) Add Password
+   q) Quit to main menu
+   a/q> a
+   Enter NEW configuration password:
+   password:
+   Confirm NEW password:
+   password:
+   Password set
+   Your configuration is encrypted.
+   c) Change Password
+   u) Unencrypt configuration
+   q) Quit to main menu
+   c/u/q>
+   ```
+2. Store the configuration password using keychain-biometric:
+   ```bash
+   keychain-biometric write --service rclone --account myaccount
+   ```
+3. Instruct Rclone to use keychain-biometric to read the password:
+
+   ```bash
+   export RCLONE_PASSWORD_COMMAND="keychain-biometric read --service rclone --account myaccount"
+   ```
+   Tip: you can add this line to your shell config, e.g. `~/.zshrc`.
+
+From that point on, every `rclone` command that requires the config password will trigger a TouchID prompt before accessing your cloud storage.
+
 ## Security
 
 **Authentication model.** TouchID (or macOS login password) is enforced by this tool at the application layer using `LAContext`. It is not enforced by the Keychain itself — no `SecAccessControl` biometric policy is attached to the stored items, because that would require Apple code signing.
